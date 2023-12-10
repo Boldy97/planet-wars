@@ -149,6 +149,7 @@ module.exports = class BotElite extends Bot {
 		}
 		// attack all free planets
 		if(this.freePlanets.length) {
+			this.freePlanets.sort((a,b) => planet.getDistance(a) - planet.getDistance(b));
 			for(let i=0;i<planet.ships && i<this.freePlanets.length;i++) {
 				const distance = planet.getRealDistance(this.freePlanets[i]);
 				const move = new Move(0,planet,this.freePlanets[i],planet.player,1,distance);
