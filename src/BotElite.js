@@ -48,30 +48,22 @@ module.exports = class BotElite extends Bot {
 
 		if(this.state.turn === 1) {
 			// decide if should change startpositions
-			let addPreferredStartPlanet = false;
-			let fertility = this.state.getPlayer(this.state.ownername).planets.reduce((fertility,planet) => {
+			const fertility = this.state.getPlayer(this.state.ownername).planets.reduce((fertility,planet) => {
 				return fertility+planet.getValue(MessageFertility);
 			},0);
-			let hostiles = this.state.players.filter(player => player.type === Utils.TYPES.HOSTILE)
-			for(let hostile of hostiles) {
-				let hostilefertility = hostile.planets.reduce((fertility,planet) => {
-					return fertility+planet.getValue(MessageFertility);
-				},0);
-				if(hostilefertility >= fertility) {
-					addPreferredStartPlanet = true;
-					break;
-				}
-			}
-			// if changing, get best option
-			if(addPreferredStartPlanet) {
-				let planet = this.state.planets.filter(planet => planet.player.type === Utils.TYPES.NEUTRAL).reduce((best,planet) => {
-					if(best === null)
-						return planet;
-					if(planet.getValue(MessageFertility) > best.getValue(MessageFertility))
-						return planet;
-					return best;
-				},null);
-				this.preferredStartPlanet = planet;
+			const higherFertilityPlanets = this.state.planets.filter(planet => {
+				return planet.getValue(MessageFertility) > fertility; // TODO change to >
+			});
+			if(higherFertilityPlanets.filter(planet => planet.player.type === Utils.TYPES.HOSTILE).length) {
+				// the enemy has a better position, get the best option available
+				this.preferredStartPlanet = higherFertilityPlanets
+					.filter(planet => planet.player.type === Utils.TYPES.NEUTRAL)
+					.reduce((best,planet) => {
+						if(!best) {
+							return planet;
+						}
+						return planet.getValue(MessageFertility) > best.getValue(MessageFertility) ? planet : best;
+					});
 			}
 			this.freePlanets = this.state.planets
 				.filter(planet => planet.player.type === Utils.TYPES.NEUTRAL)
@@ -163,6 +155,7 @@ module.exports = class BotElite extends Bot {
 				this.tryAddMove(moves,move);
 			}
 			this.freePlanets.splice(0, planet.ships);
+			return;
 		}
 		// better start position at the start
 		if(this.preferredStartPlanet !== null) {
@@ -178,18 +171,19 @@ module.exports = class BotElite extends Bot {
 		}
 
 		// send reinforcements
-		if(this.tryAddMove(moves,this.getMoveReinforcement(planet)))
+		if(this.tryAddMove(moves,this.getMoveReinforcement(planet))) {
 			return;
+		}
 
 		// try to take over another planet
-		if(this.tryAddMove(moves,this.getMoveConquest(planet)))
+		if(this.tryAddMove(moves,this.getMoveConquest(planet))) {
 			return;
+		}
 		
 		// dump excess ships
-		if(this.tryAddMove(moves,this.getMoveDump(planet)))
+		if(this.tryAddMove(moves,this.getMoveDump(planet))) {
 			return;
-
-		return;
+		}
 	}
 
 	// HARD: if trying to send more than available, limit
