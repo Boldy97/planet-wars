@@ -21,7 +21,6 @@ const TURNLIMIT = 500; // howmany turns the game will last (not necessary but us
 
 module.exports = class BotElite extends Bot {
 
-	// Same as hard, but with extras
 	// 1: tries to get a better startposition if needed
 	// 2: maximize future prospected return on conquest (only advantageous on random neutral starting shipcount)
 	// 3: knows the state of the game (early/mid/late)
@@ -36,6 +35,7 @@ module.exports = class BotElite extends Bot {
 	constructor(ownername,neutralname) {
 		super(StateRouted,ownername,neutralname);
 		this.preferredStartPlanet = null;
+		this.freePlanets = [];
 	}
 
 	processData(data) {
@@ -73,6 +73,9 @@ module.exports = class BotElite extends Bot {
 				},null);
 				this.preferredStartPlanet = planet;
 			}
+			this.freePlanets = this.state.planets
+				.filter(planet => planet.player.type === Utils.TYPES.NEUTRAL)
+				.filter(planet => !planet.ships);
 		}
 
 	}
@@ -147,15 +150,24 @@ module.exports = class BotElite extends Bot {
 	}
 
 	moveForPlanet(moves,planet) {
-		//
+		// stall for time
 		if(planet.getValue(MessageStatusWinning) === Utils.WINSTATUS.LOSING_HARD) {
 			this.tryAddMove(moves,this.getMoveFlee(planet));
 			return;
 		}
+		// attack all free planets
+		if(this.freePlanets.length) {
+			for(let i=0;i<planet.ships && i<this.freePlanets.length;i++) {
+				const distance = planet.getRealDistance(this.freePlanets[i]);
+				const move = new Move(0,planet,this.freePlanets[i],planet.player,1,distance);
+				this.tryAddMove(moves,move);
+			}
+			this.freePlanets.splice(0, planet.ships);
+		}
 		// better start position at the start
 		if(this.preferredStartPlanet !== null) {
 			// take it if you can
-			let distance = planet.getRealDistance(this.preferredStartPlanet)
+			let distance = planet.getRealDistance(this.preferredStartPlanet);
 			let future = this.preferredStartPlanet.getFuture(distance);
 			if(planet.ships > future.ships) {
 				let move = new Move(0,planet,this.preferredStartPlanet,planet.player,planet.ships,distance);
