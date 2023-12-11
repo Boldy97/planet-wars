@@ -47,6 +47,10 @@ module.exports = class Message {
 		},[]);
 	}
 
+	reduceMin(messages){
+		return messages.reduce((value,message) => Math.min(value,message.value),Infinity);
+	}
+
 	getCopy(route){
 		return new this.constructor(this.id,this.from,route.to,this.value);
 	}
@@ -57,6 +61,10 @@ module.exports = class Message {
 
 	getMessageForRouteDecrementing(route){
 		return new this.constructor(this.id,this.from,route.to,this.value-route.turns);
+	}
+
+	getMessageForRouteIncrementing(route){
+		return new this.constructor(this.id,this.from,route.to,this.value+route.turns);
 	}
 
 	getMessageForRouteCopy(route){

@@ -11,6 +11,7 @@ const MessageRequestPassive = require('./messages/MessageRequestPassive');
 const MessageStatusGame = require('./messages/MessageStatusGame');
 const MessageStatusScores = require('./messages/MessageStatusScores');
 const MessageStatusWinning = require('./messages/MessageStatusWinning');
+const MessageHostileDistance = require('./messages/MessageHostileDistance');
 const Move = require('./Move');
 const Utils = require('./Utils');
 
@@ -45,6 +46,8 @@ module.exports = class BotElite extends Bot {
 			return;
 
 		this.doMessages();
+
+		//console.log(this.state.planets.map(a => ({name:a.name,ships:a.ships,owner:a.player.type,values:a.getValues()})));
 
 		if(this.state.turn === 1) {
 			// decide if should change startpositions
@@ -104,6 +107,7 @@ module.exports = class BotElite extends Bot {
 			planet.addMessage(MessageRequestPassive.get(planet));
 			planet.addMessage(MessageStatusGame.get(planet));
 			planet.addMessage(MessageStatusScores.get(planet));
+			planet.addMessage(MessageHostileDistance.get(planet));
 		});
 
 		this.state.planets.forEach(planet => {
@@ -297,8 +301,6 @@ module.exports = class BotElite extends Bot {
 		return option;
 	}
 
-	// HARD: if surrounded by allies, dump to neighbour with highest global pressure
-	// ELITE: if winning, dump on random enemy planet
 	getMoveDump(planet) {
 		// if pressure exerted here, do nothing
 		if(planet.getValue(MessagePressureLocal) > 0)
@@ -326,6 +328,19 @@ module.exports = class BotElite extends Bot {
 						return planet;
 					return target;
 				},undefined);
+				if(!target) {
+					// dump to planet closest to front line
+					target = planet.links
+						.map(link => link.to)
+						.filter(planet2 => planet2.player.type === Utils.TYPES.ALLIED)
+						.reduce((target,planet) => {
+							if(target === undefined)
+								return planet;
+							if(planet.getValue(MessageHostileDistance) < target.getValue(MessageHostileDistance))
+								return planet;
+							return target;
+						},undefined);
+				}
 		}
 		// winning/equal/losing/no target found - neighbour under most pressure
 		if(target === undefined) {

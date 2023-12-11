@@ -24,6 +24,10 @@ module.exports = class PlanetRouted extends Planet {
 		return this.values[Message.name] || Message.getDefaultValue();
 	}
 
+	getValues(){
+		return this.values;
+	}
+
 	setValue(Message,value){
 		this.values[Message.name] = value;
 	}
